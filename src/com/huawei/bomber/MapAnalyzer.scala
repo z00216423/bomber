@@ -51,9 +51,15 @@ object MapAnalyzer {
     bombs.foreach(addOneBomb)
   }
 
-  def addOneBomb(bomb: Bomb): Unit = map(bomb.x)(bomb.y) = bomb.countDown
+  def addOneBomb(bomb: Bomb): Unit = {
+    validatePosition(bomb.x, bomb.y)
+    map(bomb.x)(bomb.y) = bomb.countDown
+  }
 
-  def placeNewBomb(x: Int, y: Int) = map(x)(y) = Constant.MAP_BOMB_COUNT_3
+  def placeNewBomb(x: Int, y: Int) = {
+    validatePosition(x,y)
+    map(x)(y) = Constant.MAP_BOMB_COUNT_3
+  }
 
   def isBombInPosition(pos: Position): Boolean = isBombInPosition(pos.x, pos.y)
 
