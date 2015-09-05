@@ -24,7 +24,12 @@ public enum DirectionEnum {
     }
 
 
-    private DirectionEnum(String name, int dx, int dy){
+    public boolean isOppsiteTo(DirectionEnum d) {
+        return dx + d.getDx() == 0 && dy + d.getDy() == 0;
+    }
+
+
+    private DirectionEnum(String name, int dx, int dy) {
         this.name = name;
         this.dx = dx;
         this.dy = dy;
@@ -33,6 +38,7 @@ public enum DirectionEnum {
     private String name;
     private int dx;
     private int dy;
+
 
     @Override
     public String toString() {

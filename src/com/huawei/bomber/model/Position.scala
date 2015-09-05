@@ -3,6 +3,7 @@ package com.huawei.bomber.model
 /**
  * Created by frank on 8/30/15.
  */
+
 case class Position(val x: Int, val y: Int){
 
   def canEqual(other: Any): Boolean = other.isInstanceOf[Position]

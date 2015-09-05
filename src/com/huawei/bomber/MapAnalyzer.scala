@@ -1,7 +1,7 @@
 package com.huawei.bomber
 
 import com.huawei.bomber.common.{Constant, Utils}
-import com.huawei.bomber.model.{Bomb, Position}
+import com.huawei.bomber.model.{BomberPath, Bomb, DirectionEnum, Position}
 
 /**
  * Created by frank on 8/30/15.
@@ -57,8 +57,14 @@ object MapAnalyzer {
   }
 
   def placeNewBomb(x: Int, y: Int) = {
-    validatePosition(x,y)
+    validatePosition(x, y)
     map(x)(y) = Constant.MAP_BOMB_COUNT_3
+  }
+
+  private def validatePosition(x: Int, y: Int): Unit = {
+    if (isOutOfMapBounds(x, y)) {
+      throw new InvalidPositionException(x, y)
+    }
   }
 
   def isBombInPosition(pos: Position): Boolean = isBombInPosition(pos.x, pos.y)
@@ -66,12 +72,6 @@ object MapAnalyzer {
   def isBombInPosition(x: Int, y: Int): Boolean = {
     validatePosition(x, y)
     isBomb(map(x)(y))
-  }
-
-  private def validatePosition(x: Int, y: Int): Unit = {
-    if (isOutOfMapBounds(x, y)) {
-      throw new InvalidPositionException(x, y)
-    }
   }
 
   /**
@@ -110,7 +110,8 @@ object MapAnalyzer {
   def getDangerPositions(): Array[Position] = {
     val bombs: Array[Bomb] = map.flatMap(row => {
       val x = map.indexOf(row)
-      row.filter(isBomb).map(v => Bomb(0, x, row.indexOf(v), v))
+      (0 until height).zip(row).filter(it => isBomb(it._2))
+        .map(it => Bomb(0, x, it._1, it._2))
     })
     getDangerPositions(bombs)
   }
@@ -176,7 +177,6 @@ object MapAnalyzer {
     explodeAreas.map(pos => Position(pos._1, pos._2))
   }
 
-
   private def isWall(item: Int): Boolean = item == Constant.MAP_WALL
 
   private def isBreakable(item: Int): Boolean = isBomb(item) || isBox(item)
@@ -188,6 +188,54 @@ object MapAnalyzer {
   private def isOutOfMapBounds(x: Int, y: Int): Boolean = x < 0 || y < 0 || x >= width || y >= height
 
   private def isDangeriousBomb(item: Int) = item == Constant.MAP_BOMB_COUNT_1
+
+  def nextDirections(pos: Position): List[DirectionEnum] =  nextPossible(pos).map(_._1)
+
+  def nextPositons(pos: Position): List[Position] = nextPossible(pos).map(_._2)
+
+  /**
+   * 给定player位置，获取所有可能走的路径
+   *
+   * @param pos
+   * @param isBoost
+   * @return
+   */
+  def possiblePath(pos: Position, isBoost: Boolean) = {
+
+    val moveStill = BomberPath(pos)
+
+    val possible: List[(DirectionEnum, Position)] = nextPossible(pos)
+
+    val oneStepPath = possible.map(it => BomberPath(pos, it._1))
+    if(isBoost) {
+      val twoStepPath = possible.flatMap(it => {
+        val d1 = it._1
+        nextDirections(it._2).filter(!d1.isOppsiteTo(_)).map(d2 => BomberPath(pos, d1, d2))
+      })
+      moveStill :: oneStepPath ::: twoStepPath
+    } else moveStill :: oneStepPath
+  }
+
+  private def nextPossible(pos: Position) = {
+    val initDirections = List(DirectionEnum.UP, DirectionEnum.DOWN, DirectionEnum.LEFT, DirectionEnum.RIGHT)
+
+    initDirections.map(d => (d, Position(pos.x + d.getDx, pos.y + d.getDy)))
+      .filter(pair => !isOutOfMapBounds(pair._2.x, pair._2.y))
+      .filter(pair => isBlank(map(pair._2.x)(pair._2.y)))
+  }
+
+  def nextSafeDirections(pos: Position): List[DirectionEnum] = {
+
+    val initDirections = List(DirectionEnum.UP, DirectionEnum.DOWN, DirectionEnum.LEFT, DirectionEnum.RIGHT)
+
+    initDirections.map(d => (d, Position(pos.x + d.getDx, pos.y + d.getDy)))
+      .filter(pair => !isOutOfMapBounds(pair._2.x, pair._2.y))
+      .filter(pair => isBlank(map(pair._2.x)(pair._2.y)))
+      .filter(pair => !getDangerPositions().contains(pair._2))
+      .map(_._1)
+  }
+
+  private def isBlank(item: Int): Boolean = item == Constant.MAP_BLANK
 
   private def validatePosition(pos: Position): Unit = validatePosition(pos.x, pos.y)
 
